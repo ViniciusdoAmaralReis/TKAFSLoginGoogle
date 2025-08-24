@@ -155,7 +155,7 @@ begin
             raise Exception.Create('Tempo limite excedido na requisição REST');
           end;
         finally
-          EventoResposta.Free;
+          FreeAndNil(EventoResposta);
         end;
       end;
       wrTimeout:
