@@ -12,7 +12,8 @@ uses
 type
   TKAFSLoginGoogle = class
   private
-    Evento: TEvent;
+    OnCodigo: TEvent;
+    OnDados: TEvent;
   public
     IdHTTPServer: TIdHTTPServer;
     OAuth2Authenticator: TOAuth2Authenticator;
@@ -40,7 +41,8 @@ begin
   inherited Create;
 
   // Cria o evento para sincronização
-  Evento := TEvent.Create(nil, True, False, '');
+  OnCodigo := TEvent.Create(nil, True, False, '');
+  OnDados := TEvent.Create(nil, True, False, '');
 
   // Cria o servidor local
   IdHTTPServer := TIdHTTPServer.Create(nil);
@@ -84,8 +86,9 @@ begin
     // Reseta código
     Codigo := '';
 
-    // Reseta evento
-    Evento.ResetEvent;
+    // Reseta eventos
+    OnCodigo.ResetEvent;
+    OnDados.ResetEvent;
 
     // Ativa servidor local
     with IdHTTPServer do
@@ -106,39 +109,38 @@ begin
     end;
 
     // Espera pelo código de forma não bloqueante
-    case Evento.WaitFor(30000) of
+    case OnCodigo.WaitFor(30000) of
       wrSignaled:
       begin
         // Cria um evento adicional para esperar a resposta assíncrona
-        var EventoResposta := TEvent.Create(nil, True, False, '');
-        var JsonDadosResultado: String := '';
-        var ErroOcorrido: Boolean := False;
+        var _jsondados := '';
+        var _erro := False;
 
         try
           // Executa a requisição REST de forma assíncrona
           TTask.Run(procedure
           begin
             try
-              JsonDadosResultado := RestCodigoParaJsonDados(Codigo);
-              EventoResposta.SetEvent;
+              _jsondados := RestCodigoParaJsonDados(Codigo);
+              OnDados.SetEvent;
             except
               on E: Exception do
               begin
-                ErroOcorrido := True;
-                JsonDadosResultado := E.Message;
-                EventoResposta.SetEvent;
+                _erro := True;
+                _jsondados := E.Message;
+                OnDados.SetEvent;
               end;
             end;
           end);
 
           // Espera pela resposta da requisição REST (com timeout)
-          if EventoResposta.WaitFor(30000) = wrSignaled then
+          if OnDados.WaitFor(30000) = wrSignaled then
           begin
-            if ErroOcorrido then
-              raise Exception.Create('Erro na requisição REST: ' + JsonDadosResultado);
+            if _erro then
+              raise Exception.Create('Erro na requisição REST: ' + _jsondados);
 
             // Converte json para objeto e preenche respostas
-            var _jsonobj := TJSONObject.ParseJSONValue(JsonDadosResultado) as TJSONObject;
+            var _jsonobj := TJSONObject.ParseJSONValue(_jsondados) as TJSONObject;
             try
               if _jsonobj <> nil then
                 with _jsonobj do
@@ -151,11 +153,9 @@ begin
             end;
           end
           else
-          begin
             raise Exception.Create('Tempo limite excedido na requisição REST');
-          end;
         finally
-          FreeAndNil(EventoResposta);
+          FreeAndNil(OnDados);
         end;
       end;
       wrTimeout:
@@ -171,7 +171,7 @@ begin
     FreeAndNil(RESTClient);
     FreeAndNil(OAuth2Authenticator);
     FreeAndNil(IdHTTPServer);
-    FreeAndNil(Evento);
+    FreeAndNil(OnCodigo);
   end;
 end;
 
@@ -181,7 +181,7 @@ begin
   Codigo := ARequestInfo.Params.Values['code'];
 
   // Sinaliza que o código foi recebido
-  TThread.Synchronize(nil, procedure begin Evento.SetEvent; end);
+  TThread.Synchronize(nil, procedure begin OnCodigo.SetEvent; end);
 
   AResponseInfo.ContentText := TelaFechamento;
   AResponseInfo.ContentType := 'text/html; charset=utf-8';
@@ -255,8 +255,11 @@ begin
     FreeAndNil(IdHTTPServer);
   end;
 
-  if Assigned(Evento) then
-    FreeAndNil(Evento);
+  if Assigned(OnDados) then
+    FreeAndNil(OnDados);
+
+  if Assigned(OnCodigo) then
+    FreeAndNil(OnCodigo);
 
   inherited Destroy;
 end;
