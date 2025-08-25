@@ -34,7 +34,7 @@ type
 implementation
 
 uses
-  UntKAFSFuncoes;
+  uKAFSFuncoes;
 
 constructor TKAFSLoginGoogle.Create;
 begin
