@@ -1,103 +1,61 @@
-# 🚀 TKAFSLoginGoogle
+# 🧩 TKAFSLoginGoogle
 
-Componente Delphi/FireMonkey para autenticação OAuth2 com Google, incluindo servidor HTTP local para captura do código de autorização.
+Componente Delphi/FireMonkey para autenticação OAuth2 com Google, utilizando servidor HTTP local para captura do código de autorização e obtenção de dados do usuário.
 
-## 📋 Descrição
+## ⚠️ Dependências externas
 
-Componente especializado em gerenciar autenticação OAuth2 com Google em aplicações Delphi/FireMonkey, com suporte multiplataforma e interface web integrada para fluxo de autorização.
+Este projeto utiliza as seguintes unidades externas que devem ser adicionadas ao projeto:
+- 🧩 [uKAFSFuncoes](https://github.com/ViniciusdoAmaralReis/uKAFSFuncoes) 
 
-## ✨ Características
-
-- ✅ Autenticação OAuth2 com Google
-- ✅ Servidor HTTP local integrado (porta 8080)
-- ✅ Interface web automática para fechamento
-- ✅ Troca automática de código por token de acesso
-- ✅ Obtenção de dados do usuário (perfil, email, foto)
-- ✅ Suporte multiplataforma
-- ✅ Timeout configurável (30 segundos padrão)
-- ✅ Tratamento de erros robusto
-
-## 🛠️ Configuração
-
-### Endpoints OAuth2 Padrão
-
-```
-AuthorizationEndpoint: https://accounts.google.com/o/oauth2/auth
-AccessTokenEndpoint: https://oauth2.googleapis.com/token
-RedirectionEndpoint: http://localhost:8080
-BaseURL: https://www.googleapis.com
-```
-
-### Escopos Padrão
-
-```
-Scope: openid email profile
-```
-
-## 📦 Como Usar
-
-### Instanciação e Autenticação
+## 💡 Chamada - Autenticação com Google
 
 ```pascal
-var
-  LoginGoogle: TKAFSLoginGoogle;
-  DadosUsuario: TArray<string>;
-begin
-  LoginGoogle := TKAFSLoginGoogle.Create;
-  try
-    DadosUsuario := LoginGoogle.Login('seu_client_id', 'seu_client_secret');
-    // Dados retornados: [URL_imagem, Nome, Sobrenome, Email]
-  finally
-    LoginGoogle.Free;
-  end;
+function TKAFSLoginGoogle.Login(const _id, _secret: String): TArray<string>;
+```
+- Exemplo de chamada:
+```pascal
+var _logingoogle := TKAFSLoginGoogle.Create;
+try
+  // Realizar autenticação
+  var _dadosusuario := LoginGoogle.Login('seu_client_id', 'seu_client_secret');
+
+  // Processar dados do usuário
+  ShowMessage('Url da imagem do Usuário: ' + _dadosusuario[0]);
+  ShowMessage('Nome do Usuário: ' + _dadosusuario[1]);
+  ShowMessage('Sobrenome do Usuário: ' + _dadosusuario[2]);
+  ShowMessage('Email do Usuário: ' + _dadosusuario[3]);
+
+finally
+  FreeAndNil(_logingoogle);
 end;
 ```
 
-### Métodos Principais
+## 🛠️ Configuração - Google Cloud Console
 
-| Método | Descrição |
-|--------|-----------|
-| `Login` | Inicia processo de autenticação |
-| `RestCodigoParaJsonDados` | Converte código em dados do usuário |
-| `TelaFechamento` | Gera HTML para interface de conclusão |
-| `Resposta` | Manipula resposta do servidor HTTP |
+1. Acesse o [Google Cloud Console](https://console.cloud.google.com/)
+2. Crie credenciais do tipo "ID do cliente OAuth"
+3. Configure as URIs de redirecionamento autorizadas:
+```
+http://localhost:8080
+```
+4. Habilite as APIs necessárias:
+   - Google People API -> IDs do cliente OAuth 2.0 (cliente para Aplicativo da Web)
+   
+## 🏛️ Status de compatibilidade
 
-## 🔧 Dependências
+| Sistema operacional | Status | Observações |
+|---------------------|--------|-------------|
+| **Windows** | ✅ **Totalmente Compatível** | Funcionamento completo com todos os recursos |
+| **macOS** | ✅ **Compatível** | Requer permissões de rede |
+| **Linux** | ✅ **Compatível** | Requer permissões de rede |
+| **Android** | ⚠️ **Compatibilidade Parcial** | Comportamento pode variar entre dispositivos |
 
-- `System.Classes`
-- `System.JSON` 
-- `System.SyncObjs`
-- `System.SysUtils`
-- `System.Threading`
-- `FMX.Dialogs`
-- `IdContext`, `IdCustomHTTPServer`, `IdHTTPServer`
-- `REST.Authenticator.OAuth`, `REST.Client`, `REST.Types`
-- `UntKAFSFuncoes` (para `AbrirNavegador`)
-
-## ⚠️ Pré-requisitos Google Cloud
-
-1. Criar projeto no [Google Cloud Console](https://console.cloud.google.com/)
-2. Configurar tela de consentimento OAuth
-3. Criar credenciais OAuth 2.0 (Tipo: Aplicativo Web)
-4. Adicionar URI de redirecionamento: `http://localhost:8080`
-
-## 🎯 Fluxo de Autenticação
-
-1. Componente inicia servidor HTTP local
-2. Abre navegador com URL de autorização Google
-3. Usuário faz login e concede permissões
-4. Google redireciona para localhost:8080 com código
-5. Componente troca código por token de acesso
-6. Obtém dados do usuário da API Google
-7. Retorna informações do perfil
-
-## ⚠️ Tratamento de Erros
-
-- Timeout de 30 segundos para autorização
-- Timeout de 30 segundos para requisição REST
-- Exceções descriptivas em caso de falhas
-- Liberação adequada de recursos em todos os cenários
+| IDE | Versão mínima | Observações |
+|---------------------|------------------------|-------------|
+| **Delphi** | ✅ **XE8** | Versões com suporte a REST components |
 
 ---
 
-**Nota:** Este componente requer a unit `UntKAFSFuncoes` para funcionamento completo, contendo a função `AbrirNavegador`.
+**Nota**: Requer configuração prévia no Google Cloud Console com URIs de redirecionamento adequadas. Certifique-se de ter a unidade `uKAFSFuncoes` baixada e configurada corretamente no projeto.
+
+**Para uso em Android**: O comportamento do servidor HTTP local pode variar conforme fabricante e versão do Android.
