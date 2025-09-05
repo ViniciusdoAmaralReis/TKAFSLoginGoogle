@@ -137,7 +137,7 @@ begin
           if OnDados.WaitFor(30000) = wrSignaled then
           begin
             if _erro then
-              raise Exception.Create('Erro na requisição REST: ' + _jsondados);
+              TThread.Synchronize(nil, procedure begin ShowMessage(_jsondados); end);
 
             // Converte json para objeto e preenche respostas
             var _jsonobj := TJSONObject.ParseJSONValue(_jsondados) as TJSONObject;
@@ -153,25 +153,40 @@ begin
             end;
           end
           else
-            raise Exception.Create('Tempo limite excedido na requisição REST');
+            TThread.Synchronize(nil, procedure begin ShowMessage('Tempo limite excedido na requisição REST'); end);
         finally
           FreeAndNil(OnDados);
         end;
       end;
       wrTimeout:
-        raise Exception.Create('Tempo limite excedido ao aguardar autorização');
+        TThread.Synchronize(nil, procedure begin ShowMessage('Tempo limite excedido ao aguardar autorização'); end);
       else
-        raise Exception.Create('Erro ao aguardar autorização');
+        TThread.Synchronize(nil, procedure begin ShowMessage('Erro ao aguardar autorização'); end);
     end;
   finally
-    IdHTTPServer.Active := False;
+    if Assigned(RESTRequest) then
+      FreeAndNil(RESTRequest);
 
-    FreeAndNil(RESTRequest);
-    FreeAndNil(RESTResponse);
-    FreeAndNil(RESTClient);
-    FreeAndNil(OAuth2Authenticator);
-    FreeAndNil(IdHTTPServer);
-    FreeAndNil(OnCodigo);
+    if Assigned(RESTResponse) then
+      FreeAndNil(RESTResponse);
+
+    if Assigned(RESTClient) then
+      FreeAndNil(RESTClient);
+
+    if Assigned(OAuth2Authenticator) then
+      FreeAndNil(OAuth2Authenticator);
+
+    if Assigned(IdHTTPServer) then
+    begin
+      IdHTTPServer.Active := False;
+      FreeAndNil(IdHTTPServer);
+    end;
+
+    if Assigned(OnDados) then
+      FreeAndNil(OnDados);
+
+    if Assigned(OnCodigo) then
+      FreeAndNil(OnCodigo);
   end;
 end;
 
