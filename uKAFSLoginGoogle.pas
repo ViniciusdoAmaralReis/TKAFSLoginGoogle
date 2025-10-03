@@ -108,7 +108,25 @@ begin
       AbrirNavegador(AuthorizationRequestURI);
     end;
 
-    // Espera pelo código de forma não bloqueante
+    while Codigo = '' do
+      Sleep(100);
+
+    var _jsondados := RestCodigoParaJsonDados(Codigo);
+    var _jsonobj := TJSONObject.ParseJSONValue(_jsondados) as TJSONObject;
+    try
+      if _jsonobj <> nil then
+        with _jsonobj do
+          Result := [GetValue('picture').Value, //Link da imagem
+                     GetValue('given_name').Value, //Nome
+                     GetValue('family_name').Value, //Sobrenome
+                     GetValue('email').Value]; //Email
+    finally
+      FreeAndNil(_jsonobj);
+    end;
+
+
+
+    {// Espera pelo código de forma não bloqueante
     case OnCodigo.WaitFor(30000) of
       wrSignaled:
       begin
@@ -132,7 +150,6 @@ begin
               end;
             end;
           end);
-
           // Espera pela resposta da requisição REST (com timeout)
           if OnDados.WaitFor(30000) = wrSignaled then
           begin
@@ -162,7 +179,7 @@ begin
         TThread.Synchronize(nil, procedure begin ShowMessage('Tempo limite excedido ao aguardar autorização'); end);
       else
         TThread.Synchronize(nil, procedure begin ShowMessage('Erro ao aguardar autorização'); end);
-    end;
+    end;}
   finally
     if Assigned(RESTRequest) then
       FreeAndNil(RESTRequest);
