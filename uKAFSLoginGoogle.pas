@@ -17,6 +17,7 @@ type
   public
     IdHTTPServer: TIdHTTPServer;
     OAuth2Authenticator: TOAuth2Authenticator;
+    Cancelado: Boolean;
     RESTClient: TRESTClient;
     RESTRequest: TRESTRequest;
     RESTResponse: TRESTResponse;
@@ -24,10 +25,13 @@ type
     Codigo: String;
 
     constructor Create; reintroduce;
-    function Login(const _id, _secret: String): TArray<string>;
+    //--------------------------------------------------------------------------
+    function  Login(const _id, _secret: String): TArray<string>;
+    procedure Cancelar;
     procedure Resposta(AContext: TIdContext; ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
-    function TelaFechamento: String;
-    function RestCodigoParaJsonDados(const _codigo: String): String;
+    function  TelaFechamento: String;
+    function  RestCodigoParaJsonDados(const _codigo: String): String;
+    //--------------------------------------------------------------------------
     destructor Destroy; override;
   end;
 
@@ -80,7 +84,7 @@ begin
   end;
 end;
 
-function TKAFSLoginGoogle.Login(const _id, _secret: String): TArray<string>;
+function  TKAFSLoginGoogle.Login(const _id, _secret: String): TArray<string>;
 begin
   try
     // Reseta código
@@ -108,8 +112,12 @@ begin
       AbrirNavegador(AuthorizationRequestURI);
     end;
 
-    while Codigo = '' do
-      Sleep(100);
+    //while Codigo = '' do
+      //Sleep(100);
+
+    OnCodigo.WaitFor(INFINITE);
+
+    if Cancelado then Exit;
 
     var _jsondados := RestCodigoParaJsonDados(Codigo);
     var _jsonobj := TJSONObject.ParseJSONValue(_jsondados) as TJSONObject;
@@ -206,6 +214,13 @@ begin
       FreeAndNil(OnCodigo);
   end;
 end;
+procedure TKAFSLoginGoogle.Cancelar;
+begin
+
+  Cancelado := True;
+  OnCodigo.SetEvent; // Desbloqueia o WaitFor imediatamente
+
+end;
 
 procedure TKAFSLoginGoogle.Resposta(AContext: TIdContext; ARequestInfo: TIdHTTPRequestInfo; AResponseInfo: TIdHTTPResponseInfo);
 begin
@@ -228,21 +243,85 @@ begin
 '  <meta name="viewport" content="width=device-width, initial-scale=1.0">' +
 '  <title>Login Concluído</title>' +
 '  <style>' +
-'    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }' +
-'    .message { margin: 20px 0; }' +
+'    * { margin: 0; padding: 0; box-sizing: border-box; }' +
+'    body {' +
+'      font-family: Arial, sans-serif;' +
+'      background: #2b2b2b;' +
+'      min-height: 100vh;' +
+'      display: flex;' +
+'      align-items: center;' +
+'      justify-content: center;' +
+'    }' +
+'    .card {' +
+'      text-align: center;' +
+'      padding: 48px 56px;' +
+'      border-radius: 18px;' +
+'      background: #232323;' +
+'      border: 1px solid #3a3a3a;' +
+'      max-width: 360px;' +
+'      width: 100%;' +
+'    }' +
+'    .check {' +
+'      width: 48px; height: 48px;' +
+'      border-radius: 50%;' +
+'      background: linear-gradient(135deg, #7c3fe0, #b07af0);' +
+'      display: flex; align-items: center; justify-content: center;' +
+'      margin: 0 auto 20px;' +
+'    }' +
+'    .check svg { width: 24px; height: 24px; }' +
+'    .title {' +
+'      margin: 0 0 8px;' +
+'      font-size: 22px;' +
+'      font-weight: 700;' +
+'      background: linear-gradient(135deg, #9b6fe0, #c89ef2);' +
+'      -webkit-background-clip: text;' +
+'      -webkit-text-fill-color: transparent;' +
+'      background-clip: text;' +
+'    }' +
+'    .sub {' +
+'      font-size: 14px;' +
+'      color: #888;' +
+'      margin: 0 0 28px;' +
+'      line-height: 1.6;' +
+'    }' +
+'    .divider {' +
+'      height: 1px;' +
+'      background: linear-gradient(90deg, transparent, #4a3060, transparent);' +
+'      margin: 24px 0;' +
+'    }' +
+'    .brand {' +
+'      font-size: 11px;' +
+'      letter-spacing: 0.08em;' +
+'      text-transform: uppercase;' +
+'      background: linear-gradient(135deg, #9b6fe0, #c89ef2);' +
+'      -webkit-background-clip: text;' +
+'      -webkit-text-fill-color: transparent;' +
+'      background-clip: text;' +
+'    }' +
 '  </style>' +
 '</head>' +
 '<body>' +
-'  <h2>Login Concluído</h2>' +
-'  <div class="message">Você pode retornar ao aplicativo</div>' +
+'  <div class="card">' +
+'    <div class="check">' +
+'      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+'        <path d="M5 12L10 17L19 7" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+'      </svg>' +
+'    </div>' +
+'    <div class="title">Login realizado!</div>' +
+'    <div class="sub">Você já pode retornar ao aplicativo.<br>' +
+'      <span id="instrucao">Fechando esta aba...</span>' +
+'    </div>' +
+'    <div class="divider"></div>' +
+'    <div class="brand">KAFS Group</div>' +
+'  </div>' +
 '  <script>' +
-'    // Tenta fechar a janela (funciona em alguns navegadores)' +
-'    try { window.close(); } catch (e) {}' +
-'    ' +
-'    // Redireciona após um tempo se não fechar' +
-'    setTimeout(function() {' +
-'      window.location.href = "about:blank";' +
-'    }, 1000);' +
+'    var fechou = false;' +
+'    try { window.close(); fechou = true; } catch (e) {}' +
+'    if (!fechou) {' +
+'      setTimeout(function() {' +
+'        document.getElementById("instrucao").innerText = "Você pode fechar esta aba.";' +
+'      }, 1500);' +
+'    }' +
 '  </script>' +
 '</body>' +
 '</html>';
